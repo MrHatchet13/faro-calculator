@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hatchetjon’s Faro Calculator</title>
+  <style>
+    :root {
+      --primary-blue: #0d47a1;
+      --primary-blue-light: #1976d2;
+      --primary-blue-lighter: #e3f2fd;
+      --accent: #ffca28;
+      --bg: #f4f7fb;
+      --text-main: #0b1b3b;
+      --border-radius: 10px;
+      --shadow-soft: 0 4px 12px rgba(0,0,0,0.12);
+      --panel-bg: #f4f7fb;
+      --results-bg: #ffffff;
+      --card-bg: #ffffff;
+      --card-border: #cbd5e1;
+    }
+    body.dark {
+      --primary-blue: #1e3a8a;
+      --primary-blue-light: #2563eb;
+      --primary-blue-lighter: #1f2937;
+      --accent: #facc15;
+      --bg: #020617;
+      --text-main: #e5e7eb;
+      --panel-bg: #020617;
+      --results-bg: #020617;
+      --card-bg: #020617;
+      --card-border: #4b5563;
+    }
+    * { box-sizing:border-box; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; margin:0; padding:0; }
+    body { background:radial-gradient(circle at top, #e3f2fd 0, #bbdefb 40%, #90caf9 100%); color:var(--text-main); transition:all 0.3s ease; }
+    body.dark { background:radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%); }
+    .page-wrapper { min-height:100vh; padding:20px 10px; display:flex; justify-content:center; }
+    .app-container { background:white; border-radius:16px; box-shadow:var(--shadow-soft); max-width:1400px; width:100%; padding:20px; border:1px solid rgba(13,71,161,0.1); transition:all 0.3s; }
+    body.dark .app-container { background:#020617; border-color:rgba(148,163,184,0.3); }
+    header { text-align:center; margin-bottom:16px; }
+    .title-row { display:inline-flex; align-items:center; gap:12px; padding:10px 20px; border-radius:999px; background:linear-gradient(90deg,var(--primary-blue),var(--primary-blue-light)); color:white; box-shadow:0 6px 20px rgba(13,71,161,0.4); font-size:2.1rem; font-weight:800; letter-spacing:0.02em; }
+    body.dark .title-row { background:linear-gradient(90deg,#1e3a8a,#2563eb); }
+    .subtitle { margin:8px 0 0; font-size:1.1rem; font-weight:500; color:#1e3a8a; }
+    body.dark .subtitle { color:#bfdbfe; }
+    .top-header-row { display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:0.9rem; flex-wrap:wrap; gap:12px; }
+    .top-header-row button { border-radius:999px; border:none; padding:6px 12px; font-size:0.8rem; cursor:pointer; background:rgba(25,118,210,0.1); color:var(--primary-blue); }
+    body.dark .top-header-row button { background:rgba(37,99,235,0.25); color:#e5e7eb; }
+    .main-layout { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:1100px) { .main-layout { grid-template-columns:1fr; } }
+    .analysis-layout { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-top:16px; }
+    .panel { background:var(--panel-bg); border-radius:12px; padding:12px; border:1px solid rgba(13,71,161,0.12); }
+    body.dark .panel { border-color:rgba(148,163,184,0.3); }
+    .controls-panel { margin-top:12px; }
+    .button-groups { display:flex; flex-direction:column; gap:8px; }
+    .group-row { border-radius:10px; border:1px solid rgba(13,71,161,0.18); background:var(--primary-blue-lighter); overflow:hidden; }
+    body.dark .group-row { background:#020617; border-color:rgba(148,163,184,0.4); }
+    .group-header { padding:6px 10px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+    .group-title { font-size:0.9rem; font-weight:600; color:var(--primary-blue); display:flex; align-items:center; gap:6px; }
+    body.dark .group-title { color:#bfdbfe; }
+    .group-body { padding:8px 10px; }
+    .group-row.collapsed .group-body { display:none; }
+    .tool-desc { font-size:0.85rem; color:#555; margin-top:4px; opacity:0.9; }
+    body.dark .tool-desc { color:#bbb; }
+    .shuffle-control { display:flex; align-items:center; gap:8px; margin:4px 0; flex-wrap:wrap; }
+    .shuffle-button { border-radius:999px; border:none; padding:6px 14px; font-size:0.85rem; font-weight:600; cursor:pointer; background:linear-gradient(135deg,#1976d2,#0d47a1); color:white; box-shadow:0 3px 8px rgba(13,71,161,0.4); white-space:nowrap; }
+    .shuffle-button.secondary { background:linear-gradient(135deg,#1e88e5,#1565c0); }
+    .shuffle-button.neutral { background:linear-gradient(135deg,#6b7280,#4b5563); }
+    .shuffle-explanation { font-size:0.8rem; color:#1f2937; flex:1 1 220px; min-width:0; }
+    body.dark .shuffle-explanation { color:#9ca3af; }
+    .split-controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:0.85rem; }
+    .split-controls label { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.9); padding:4px 8px; border-radius:999px; border:1px solid rgba(13,71,161,0.18); }
+    body.dark .split-controls label { background:#020617; border-color:rgba(148,163,184,0.5); color:#e5e7eb; }
+    .split-controls input[type="number"], .split-controls input[type="text"], .split-controls select { width:80px; border-radius:999px; border:1px solid rgba(13,71,161,0.3); padding:4px 8px; font-size:0.85rem; outline:none; }
+    body.dark .split-controls input, body.dark .split-controls select { background:#020617; color:#e5e7eb; border-color:rgba(148,163,184,0.5); }
+    .results-box { background:var(--results-bg); border-radius:10px; border:1px solid rgba(13,71,161,0.25); padding:10px; min-height:140px; font-size:0.9rem; overflow-y:auto; white-space:pre-wrap; line-height:1.4; }
+    body.dark .results-box { border-color:rgba(148,163,184,0.5); color:#e5e7eb; }
+    .visual-deck-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(38px,1fr)); gap:4px; max-height:180px; overflow-y:auto; }
+    .card-chip { border-radius:6px; border:1px solid var(--card-border); background:var(--card-bg); padding:3px 4px; text-align:center; font-size:0.75rem; box-shadow:0 1px 2px rgba(15,23,42,0.08); }
+    .card-chip.highlight { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); font-weight:600; }
+    .heatmap-table { border-collapse:collapse; font-size:0.8rem; margin-top:8px; width:100%; }
+    .heatmap-table th, .heatmap-table td { border:1px solid #ccc; padding:4px 6px; text-align:center; }
+    body.dark .heatmap-table th, body.dark .heatmap-table td { border-color:#555; }
+    .heatmap-table .fast { background:#d4edda; color:#155724; }
+    body.dark .heatmap-table .fast { background:#2e7d32; color:white; }
+    .heatmap-table .medium { background:#fff3cd; color:#856404; }
+    body.dark .heatmap-table .medium { background:#b58900; color:white; }
+    .heatmap-table .slow { background:#f8d7da; color:#721c24; }
+    body.dark .heatmap-table .slow { background:#c62828; color:white; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="app-container">
+    <header>
+      <div class="title-row">Hatchetjon’s Faro Calculator</div>
+      <div class="subtitle">Advanced Faro & Shuffle Simulator – Track, Test, and Master Any Deck</div>
+      <div class="top-header-row">
+        <span>Full-featured faro lab with stack tools and cycle analysis</span>
+        <button type="button" id="toggleDarkModeBtn">Toggle dark mode</button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Left column: Deck input + Shuffle controls -->
+      <div>
+        <section class="panel">
+          <div class="top-toolbar">
+            <div><strong>Deck Input</strong> — comma-separated, top card first</div>
+            <div>
+              <button type="button" id="resetNewDeckBtn">New Deck</button>
+              <button type="button" id="undoBtn">Undo</button>
+              <button type="button" id="redoBtn">Redo</button>
+            </div>
+          </div>
+          <textarea id="deckInput"></textarea>
+          <div class="helper-text">
+            <span><strong>Format:</strong> <code>AS,2S,3S,...,KS,AD,...,KD,AC,...,KC,AH,...,KH</code></span><br>
+            <span><strong>Tip:</strong> Edit the deck freely, then apply any shuffle below.</span>
+          </div>
+          <div class="tracker-row">
+            <label><span><strong>Track card:</strong></span><input type="text" id="trackCardInput" placeholder="e.g. AS"></label>
+            <span id="trackCardResult">Position: —</span>
+          </div>
+          <div class="file-controls">
+            <label for="importFileInput"><span>Import deck (.txt)</span><input type="file" id="importFileInput" accept=".txt"></label>
+            <button type="button" id="exportDeckBtn">Export deck (.txt)</button>
+          </div>
+          <div class="integrity-panel">
+            <strong>Deck integrity</strong>
+            <span id="integritySummary">No analysis yet.</span>
+          </div>
+        </section>
+
+        <section class="controls-panel">
+          <h3>Shuffle Controls</h3>
+          <div class="button-groups">
+
+            <div class="group-row" data-group="perfect">
+              <div class="group-header">
+                <div class="group-title">Perfect Faros <span class="tag">Exact 50/50 splits</span></div>
+                <span class="group-toggle-icon">▾</span>
+              </div>
+              <div class="group-body">
+                <div class="shuffle-control">
+                  <button class="shuffle-button" id="outFaroBtn" type="button"><span>Out-Faro</span><span class="key">perfect</span></button>
+                  <div class="shuffle-explanation">Standard perfect out-faro: split into two equal halves and interlace starting with the top half so the top and bottom cards stay in place.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button secondary" id="inFaroBtn" type="button"><span>In-Faro</span><span class="key">perfect</span></button>
+                  <div class="shuffle-explanation">Magician’s in-faro: split evenly and interlace starting with the bottom half so the top card becomes second and the bottom card becomes second from bottom.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="reverseOutFaroBtn" type="button"><span>Reverse Out-Faro</span><span class="key">inverse</span></button>
+                  <div class="shuffle-explanation">Reverse out-faro: reconstructs the original order that produced the current deck via a perfect out-faro.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="reverseInFaroBtn" type="button"><span>Reverse In-Faro</span><span class="key">inverse</span></button>
+                  <div class="shuffle-explanation">Reverse in-faro: reconstructs the original order that produced the current deck via a perfect in-faro.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="mongePerfectBtn" type="button"><span>Monge-Perfect</span><span class="key">patterned</span></button>
+                  <div class="shuffle-explanation">Monge-perfect variant: a deterministic Monge-style pattern designed to cycle cleanly.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-row" data-group="straddle">
+              <div class="group-header">
+                <div class="group-title">Straddle Faros <span class="tag">27/25 & 25/27</span></div>
+                <span class="group-toggle-icon">▾</span>
+              </div>
+              <div class="group-body">
+                <div class="shuffle-control">
+                  <button class="shuffle-button" id="leftStraddleBtn" type="button"><span>Left-Straddle</span><span class="key">27/25</span></button>
+                  <div class="shuffle-explanation">Left-straddle faro: uses a 27/25 split where an extra card from the top half is placed before the weave to create the straddle.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button secondary" id="rightStraddleBtn" type="button"><span>Right-Straddle</span><span class="key">25/27</span></button>
+                  <div class="shuffle-explanation">Right-straddle faro: uses a 25/27 split where an extra card from the bottom half is placed before the weave to create the opposite straddle.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-row collapsed" data-group="monge">
+              <div class="group-header">
+                <div class="group-title">Monge & Specialty <span class="tag">Alternating & fancy</span></div>
+                <span class="group-toggle-icon">▸</span>
+              </div>
+              <div class="group-body">
+                <div class="shuffle-control">
+                  <button class="shuffle-button" id="classicMongeBtn" type="button"><span>Classic Monge</span><span class="key">top-bottom</span></button>
+                  <div class="shuffle-explanation">Classic Monge: deal cards from the top, placing the first card to the bottom of a new pile, the next to the top, and continue alternating bottom and top placements.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button secondary" id="reverseMongeBtn" type="button"><span>Reverse Monge</span><span class="key">reverse</span></button>
+                  <div class="shuffle-explanation">Reverse Monge: deal from the top but start by placing the first card to the top of a new pile, then the next to the bottom, alternating in the opposite direction.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="horseshoeBtn" type="button"><span>Horseshoe</span><span class="key">flip & weave</span></button>
+                  <div class="shuffle-explanation">Horseshoe-style: cut the deck, reverse one half, then interlace — a rough simulation of the move.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="milkShuffleBtn" type="button"><span>Milk Shuffle</span><span class="key">top/bottom</span></button>
+                  <div class="shuffle-explanation">Milk shuffle simulation: repeatedly take top and bottom cards as a pair to a new pile, then drop the middle.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="zarrowBtn" type="button"><span>Zarrow (logic)</span><span class="key">false</span></button>
+                  <div class="shuffle-explanation">Zarrow logic simulation: approximate the strip-out false shuffle as a deterministic permutation (no animation).</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-row collapsed" data-group="imperfect">
+              <div class="group-header">
+                <div class="group-title">Imperfect Faros <span class="tag">Custom splits</span></div>
+                <span class="group-toggle-icon">▸</span>
+              </div>
+              <div class="group-body">
+                <div class="shuffle-control">
+                  <button class="shuffle-button" id="imperfectOutBtn" type="button"><span>Imperfect Out-Faro</span><span class="key">custom</span></button>
+                  <div class="shuffle-explanation">Imperfect out-faro: use custom top and bottom packet sizes, then interlace starting with the top packet while preserving the chosen imbalance.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button secondary" id="imperfectInBtn" type="button"><span>Imperfect In-Faro</span><span class="key">custom</span></button>
+                  <div class="shuffle-explanation">Imperfect in-faro: use custom packet sizes, then interlace starting with the bottom packet to simulate an in-faro with an intentional off-center split.</div>
+                </div>
+                <div class="split-controls">
+                  <label><span>Top packet size</span><input type="number" id="topPacketSize" min="0" value="26"></label>
+                  <label><span>Bottom packet size</span><input type="number" id="bottomPacketSize" min="0" value="26"></label>
+                  <span class="split-note">The two sizes must add up to the current deck size. Uneven splits are allowed for imperfect faros.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-row" data-group="analysis">
+              <div class="group-header">
+                <div class="group-title">Analysis Tools <span class="tag">Cycles & tracking</span></div>
+                <span class="group-toggle-icon">▾</span>
+              </div>
+              <div class="group-body">
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="outCycleBtn" type="button"><span>Out-Faro Cycle</span><span class="key">cycle</span></button>
+                  <div class="shuffle-explanation">Compute how many perfect out-faros it takes to return this deck to its starting order.</div>
+                </div>
+                <div class="shuffle-control">
+                  <button class="shuffle-button neutral" id="inCycleBtn" type="button"><span>In-Faro Cycle</span><span class="key">cycle</span></button>
+                  <div class="shuffle-explanation">Compute how many perfect in-faros it takes to return this deck to its starting order.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
+
+      <!-- Right column: Output + New analysis tools -->
+      <div>
+        <section class="panel">
+          <h3>Output & Analysis <span class="label-pill">Live result</span></h3>
+          <div class="results-header">
+            <span class="count" id="cardCountLabel">Cards: 0</span>
+            <div><button type="button" id="copyOutputBtn">Copy output</button></div>
+          </div>
+          <div id="resultsBox" class="results-box"></div>
+          <div class="visual-deck-panel">
+            <strong>Visual deck display</strong>
+            <div id="visualDeckGrid" class="visual-deck-grid"></div>
+          </div>
+          <div class="history-panel">
+            <strong>Shuffle history</strong>
+            <ul id="historyList"></ul>
+          </div>
+        </section>
+
+        <div class="analysis-layout">
+          <section class="panel">
+            <h3>Block Movement Analyzer</h3>
+            <div class="tool-desc">Shows how a block of cards (e.g. positions 10–20) moves, stays together, splits, or drifts after one shuffle.</div>
+            <div class="split-controls">
+              <label><span>Start pos</span><input type="number" id="blockStartPos" min="1" value="1"></label>
+              <label><span>End pos</span><input type="number" id="blockEndPos" min="1" value="12"></label>
+              <label><span>Shuffle</span>
+                <select id="blockShuffleType">
+                  <option value="out">Out-Faro</option>
+                  <option value="in">In-Faro</option>
+                  <option value="imperfect">Imperfect Out</option>
+                </select>
+              </label>
+            </div>
+            <button class="shuffle-button neutral" id="analyzeBlockBtn" type="button">Analyze Block</button>
+            <div id="blockAnalysisOutput" class="results-box" style="margin-top:8px; min-height:100px; font-size:0.9rem;">Select range and click Analyze Block</div>
+          </section>
+
+          <section class="panel">
+            <h3>Return-to-Position Solver</h3>
+            <div class="tool-desc">Finds how many Out or In faros are needed to move a chosen card to a specific target position (card control tool).</div>
+            <div class="split-controls">
+              <label><span>Card</span><input type="text" id="rtpCard" placeholder="AS" style="text-transform:uppercase;"></label>
+              <label><span>Target pos</span><input type="number" id="rtpTarget" min="1" value="1"></label>
+              <label><span>Max steps</span><input type="number" id="rtpMaxSteps" min="1" value="20"></label>
+            </div>
+            <button class="shuffle-button neutral" id="solveRtpBtn" type="button">Solve Path</button>
+            <div id="rtpOutput" class="results-box" style="margin-top:8px; min-height:100px; font-size:0.9rem;">Enter card & target, then Solve Path</div>
+          </section>
+
+          <section class="panel">
+            <h3>Cycle Compression Viewer</h3>
+            <div class="tool-desc">Breaks down the faro cycle into sub-cycles/orbits — shows which positions return together and after how many shuffles (group-theory view).</div>
+            <button class="shuffle-button neutral" id="showOrbitsBtn" type="button">Show Position Orbits (Out-Faro)</button>
+            <div id="orbitsOutput" class="results-box" style="margin-top:8px; min-height:120px; font-size:0.9rem;">Click to analyze cycles</div>
+          </section>
+
+          <section class="panel">
+            <h3>Faro Cycle Heatmap</h3>
+            <div class="tool-desc">Visual grid showing how quickly each position returns to its original spot after repeated Out-Faros (color-coded: fast = green, slow = red).</div>
+            <button class="shuffle-button neutral" id="showHeatmapBtn" type="button">Generate Heatmap (Out-Faro)</button>
+            <div id="heatmapContainer" style="margin-top:8px; overflow-x:auto;"></div>
+          </section>
+
+          <section class="panel">
+            <h3>Faro Sensitivity Analyzer</h3>
+            <div class="tool-desc">Shows how a small off-by-one error in imperfect faro split size affects a tracked card's position — reveals stable vs sensitive spots.</div>
+            <div class="split-controls">
+              <label><span>Tracked card</span><input type="text" id="sensCard" placeholder="AS" style="text-transform:uppercase;"></label>
+              <label><span>Base top size</span><input type="number" id="sensBaseTop" min="1" value="26"></label>
+            </div>
+            <button class="shuffle-button neutral" id="analyzeSensBtn" type="button">Analyze Sensitivity</button>
+            <div id="sensOutput" class="results-box" style="margin-top:8px; min-height:100px; font-size:0.9rem;">Enter card & base split, then Analyze</div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note" style="text-align:center; margin-top:16px; font-size:0.8rem; opacity:0.8;">
+      New deck order: <code>AS–KS, AD–KD, AC–KC, AH–KH</code> (top card first)
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const deckInput = document.getElementById('deckInput');
+  const resultsBox = document.getElementById('resultsBox');
+  const cardCountLabel = document.getElementById('cardCountLabel');
+  const resetNewDeckBtn = document.getElementById('resetNewDeckBtn');
+  const copyOutputBtn = document.getElementById('copyOutputBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const toggleDarkModeBtn = document.getElementById('toggleDarkModeBtn');
+  const outFaroBtn = document.getElementById('outFaroBtn');
+  const inFaroBtn = document.getElementById('inFaroBtn');
+  const reverseOutFaroBtn = document.getElementById('reverseOutFaroBtn');
+  const reverseInFaroBtn = document.getElementById('reverseInFaroBtn');
+  const mongePerfectBtn = document.getElementById('mongePerfectBtn');
+  const leftStraddleBtn = document.getElementById('leftStraddleBtn');
+  const rightStraddleBtn = document.getElementById('rightStraddleBtn');
+  const classicMongeBtn = document.getElementById('classicMongeBtn');
+  const reverseMongeBtn = document.getElementById('reverseMongeBtn');
+  const horseshoeBtn = document.getElementById('horseshoeBtn');
+  const milkShuffleBtn = document.getElementById('milkShuffleBtn');
+  const zarrowBtn = document.getElementById('zarrowBtn');
+  const imperfectOutBtn = document.getElementById('imperfectOutBtn');
+  const imperfectInBtn = document.getElementById('imperfectInBtn');
+  const topPacketSizeInput = document.getElementById('topPacketSize');
+  const bottomPacketSizeInput = document.getElementById('bottomPacketSize');
+  const outCycleBtn = document.getElementById('outCycleBtn');
+  const inCycleBtn = document.getElementById('inCycleBtn');
+  const trackCardInput = document.getElementById('trackCardInput');
+  const trackCardResult = document.getElementById('trackCardResult');
+  const historyList = document.getElementById('historyList');
+  const visualDeckGrid = document.getElementById('visualDeckGrid');
+  const integritySummary = document.getElementById('integritySummary');
+  const importFileInput = document.getElementById('importFileInput');
+  const exportDeckBtn = document.getElementById('exportDeckBtn');
+  const groupRows = document.querySelectorAll('.group-row');
+
+  const blockStartPos = document.getElementById('blockStartPos');
+  const blockEndPos = document.getElementById('blockEndPos');
+  const blockShuffleType = document.getElementById('blockShuffleType');
+  const analyzeBlockBtn = document.getElementById('analyzeBlockBtn');
+  const blockAnalysisOutput = document.getElementById('blockAnalysisOutput');
+
+  const rtpCard = document.getElementById('rtpCard');
+  const rtpTarget = document.getElementById('rtpTarget');
+  const rtpMaxSteps = document.getElementById('rtpMaxSteps');
+  const solveRtpBtn = document.getElementById('solveRtpBtn');
+  const rtpOutput = document.getElementById('rtpOutput');
+
+  const showOrbitsBtn = document.getElementById('showOrbitsBtn');
+  const orbitsOutput = document.getElementById('orbitsOutput');
+
+  const showHeatmapBtn = document.getElementById('showHeatmapBtn');
+  const heatmapContainer = document.getElementById('heatmapContainer');
+
+  const sensCard = document.getElementById('sensCard');
+  const sensBaseTop = document.getElementById('sensBaseTop');
+  const analyzeSensBtn = document.getElementById('analyzeSensBtn');
+  const sensOutput = document.getElementById('sensOutput');
+
+  let undoStack = [];
+  let redoStack = [];
+
+  function buildNewDeckOrder() {
+    const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+    const suits = ['S','D','C','H'];
+    const deck = [];
+    for (let s of suits) for (let r of ranks) deck.push(r + s);
+    return deck;
+  }
+
+  function parseDeck(silent = false) {
+    const raw = deckInput.value.trim();
+    if (!raw) { if (!silent) alert('Enter a deck.'); return null; }
+    const parts = raw.split(',').map(c => c.trim()).filter(c => c);
+    if (!parts.length) { if (!silent) alert('No valid cards.'); return null; }
+    return parts;
+  }
+
+  function formatDeck(deck) { return deck.join(', '); }
+
+  function updateTrackedPosition(deck) {
+    const card = (trackCardInput.value || '').trim().toUpperCase();
+    if (!card) return trackCardResult.textContent = 'Position: —';
+    const idx = deck.indexOf(card);
+    trackCardResult.textContent = idx === -1 ? 'Position: not in deck' : `Position: ${idx+1}`;
+  }
+
+  function updateVisualDeck(deck) {
+    visualDeckGrid.innerHTML = '';
+    const tracked = (trackCardInput.value || '').trim().toUpperCase();
+    deck.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'card-chip' + (tracked === c ? ' highlight' : '');
+      el.textContent = c;
+      visualDeckGrid.appendChild(el);
+    });
+  }
+
+  function analyzeIntegrity(deck) {
+    if (!deck?.length) return integritySummary.textContent = 'No analysis yet.';
+    const seen = new Map(), dups = [], invalid = [];
+    const ranks = new Set(['A','2','3','4','5','6','7','8','9','10','J','Q','K']);
+    const suits = new Set(['S','D','C','H']);
+    deck.forEach(c => {
+      const key = c.toUpperCase();
+      if (seen.has(key)) { if (!dups.includes(key)) dups.push(key); }
+      seen.set(key, true);
+      const rank = key.slice(0,-1), suit = key.slice(-1);
+      if (!ranks.has(rank) || !suits.has(suit)) { if (!invalid.includes(key)) invalid.push(key); }
+    });
+    let msg = `Total cards: ${deck.length}`;
+    msg += dups.length ? ` | Duplicates: ${dups.join(', ')}` : ' | Duplicates: none detected.';
+    msg += invalid.length ? ` | Invalid codes: ${invalid.join(', ')}` : ' | Invalid codes: none detected.';
+    integritySummary.textContent = msg;
+  }
+
+  function updateDisplay(deck) {
+    deckInput.value = formatDeck(deck);
+    cardCountLabel.textContent = `Cards: ${deck.length}`;
+    resultsBox.textContent = deck.map((c,i) => `${(i+1).toString().padStart(2,' ')}. ${c}`).join('\n');
+    updateTrackedPosition(deck);
+    updateVisualDeck(deck);
+    analyzeIntegrity(deck);
+  }
+
+  function requireEvenDeck(deck, name) {
+    if (deck.length % 2 !== 0) {
+      alert(`${name} requires even number of cards (current: ${deck.length}).`);
+      return false;
+    }
+    return true;
+  }
+
+  function perfectOutFaro(deck) {
+    if (!requireEvenDeck(deck, 'Perfect out-faro')) return null;
+    const h = deck.length / 2;
+    const top = deck.slice(0,h), bot = deck.slice(h);
+    const r = [];
+    for (let i = 0; i < h; i++) r.push(top[i], bot[i]);
+    return r;
+  }
+
+  function perfectInFaro(deck) {
+    if (!requireEvenDeck(deck, 'Perfect in-faro')) return null;
+    const h = deck.length / 2;
+    const top = deck.slice(0,h), bot = deck.slice(h);
+    const r = [];
+    for (let i = 0; i < h; i++) r.push(bot[i], top[i]);
+    return r;
+  }
+
+  function reverseOutFaro(deck) {
+    if (!requireEvenDeck(deck, 'Reverse out-faro')) return null;
+    const top = [], bottom = [];
+    for (let i = 0; i < deck.length; i++) {
+      if (i % 2 === 0) top.push(deck[i]);
+      else bottom.push(deck[i]);
+    }
+    return top.concat(bottom);
+  }
+
+  function reverseInFaro(deck) {
+    if (!requireEvenDeck(deck, 'Reverse in-faro')) return null;
+    const h = deck.length / 2;
+    const top = new Array(h), bottom = new Array(h);
+    for (let i = 0; i < deck.length; i += 2) {
+      bottom[i/2] = deck[i];
+      top[i/2] = deck[i+1];
+    }
+    return top.concat(bottom);
+  }
+
+  function mongePerfect(deck) {
+    const result = [];
+    let left = 0, right = deck.length - 1;
+    let placeLeft = true;
+    while (left <= right) {
+      if (placeLeft) result.push(deck[left++]);
+      else result.push(deck[right--]);
+      placeLeft = !placeLeft;
+    }
+    return result;
+  }
+
+  function leftStraddleFaro(deck) {
+    if (deck.length !== 52) {
+      alert('Left-straddle defined for 52 cards (27/25). Current: ' + deck.length);
+      return null;
+    }
+    const top = deck.slice(0,27), bottom = deck.slice(27);
+    const r = [top[0]];
+    const remTop = top.slice(1);
+    const minL = Math.min(remTop.length, bottom.length);
+    for (let i = 0; i < minL; i++) r.push(bottom[i], remTop[i]);
+    if (remTop.length > minL) r.push(...remTop.slice(minL));
+    if (bottom.length > minL) r.push(...bottom.slice(minL));
+    return r;
+  }
+
+  function rightStraddleFaro(deck) {
+    if (deck.length !== 52) {
+      alert('Right-straddle defined for 52 cards (25/27). Current: ' + deck.length);
+      return null;
+    }
+    const top = deck.slice(0,25), bottom = deck.slice(25);
+    const r = [bottom[0]];
+    const remBot = bottom.slice(1);
+    const minL = Math.min(top.length, remBot.length);
+    for (let i = 0; i < minL; i++) r.push(top[i], remBot[i]);
+    if (top.length > minL) r.push(...top.slice(minL));
+    if (remBot.length > minL) r.push(...remBot.slice(minL));
+    return r;
+  }
+
+  function classicMonge(deck) {
+    const result = [];
+    let placeToBottom = true;
+    for (let card of deck) {
+      if (placeToBottom) result.push(card);
+      else result.unshift(card);
+      placeToBottom = !placeToBottom;
+    }
+    return result;
+  }
+
+  function reverseMonge(deck) {
+    const result = [];
+    let placeToTop = true;
+    for (let card of deck) {
+      if (placeToTop) result.unshift(card);
+      else result.push(card);
+      placeToTop = !placeToTop;
+    }
+    return result;
+  }
+
+  function horseshoeShuffle(deck) {
+    if (deck.length < 2) return deck.slice();
+    const half = Math.floor(deck.length / 2);
+    const top = deck.slice(0, half);
+    const bottom = deck.slice(half).reverse();
+    const result = [];
+    const maxL = Math.max(top.length, bottom.length);
+    for (let i = 0; i < maxL; i++) {
+      if (i < top.length) result.push(top[i]);
+      if (i < bottom.length) result.push(bottom[i]);
+    }
+    return result;
+  }
+
+  function milkShuffle(deck) {
+    const result = [];
+    let left = 0, right = deck.length - 1;
+    const middle = [];
+    while (right - left > 1) {
+      result.push(deck[left++]);
+      result.push(deck[right--]);
+    }
+    for (let i = left; i <= right; i++) middle.push(deck[i]);
+    return result.concat(middle);
+  }
+
+  function zarrowShuffle(deck) {
+    if (deck.length < 2) return deck.slice();
+    const half = Math.floor(deck.length / 2);
+    const top = deck.slice(0, half);
+    const bottom = deck.slice(half);
+    const result = [];
+    const maxL = Math.max(top.length, bottom.length);
+    for (let i = 0; i < maxL; i++) {
+      if (i < top.length) result.push(top[i]);
+      if (i < bottom.length) result.push(bottom[i]);
+    }
+    const cut = Math.floor(result.length / 4);
+    return result.slice(cut).concat(result.slice(0, cut));
+  }
+
+  function imperfectWeave(deck, topSize, startWithTop) {
+    if (topSize < 0 || topSize > deck.length) {
+      alert('Top size must be 0 to deck length.');
+      return null;
+    }
+    const bottom = deck.slice(topSize);
+    const top = deck.slice(0, topSize);
+    const result = [];
+    let iT = 0, iB = 0;
+    let useTop = startWithTop;
+    while (iT < top.length && iB < bottom.length) {
+      if (useTop) result.push(top[iT++]);
+      else result.push(bottom[iB++]);
+      useTop = !useTop;
+    }
+    while (iT < top.length) result.push(top[iT++]);
+    while (iB < bottom.length) result.push(bottom[iB++]);
+    return result;
+  }
+
+  function validateImperfectSplit(len, t, b) {
+    if (t < 0 || b < 0 || t + b !== len) {
+      alert('Sizes must be non-negative and sum to deck length.');
+      return false;
+    }
+    return true;
+  }
+
+  function arraysEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  function computeFaroCycle(deck, fn, label) {
+    const orig = deck.slice();
+    let cur = deck.slice();
+    let count = 0;
+    do {
+      cur = fn(cur);
+      if (!cur) return;
+      count++;
+      if (count > 1000) return alert(label + ': cycle >1000, aborting.');
+    } while (!arraysEqual(cur, orig));
+    alert(label + ': returns in ' + count + ' shuffles.');
+  }
+
+  function logHistoryEntry(label) {
+    const li = document.createElement('li');
+    li.textContent = `[${new Date().toLocaleTimeString()}] ${label}`;
+    historyList.insertBefore(li, historyList.firstChild);
+  }
+
+  function pushUndoState(deck) {
+    undoStack.push(deck.slice());
+    if (undoStack.length > 200) undoStack.shift();
+    redoStack = [];
+  }
+
+  function applyShuffle(fn, desc) {
+    const deck = parseDeck();
+    if (!deck) return;
+    const next = fn(deck);
+    if (!next) return;
+    pushUndoState(deck);
+    updateDisplay(next);
+    logHistoryEntry(desc);
+  }
+
+  // ── New Feature Functions ───────────────────────────────────────────────────
+
+  function analyzeSelectedBlock() {
+    const deck = parseDeck(true);
+    if (!deck) return blockAnalysisOutput.textContent = "No deck loaded.";
+    let s = parseInt(blockStartPos.value), e = parseInt(blockEndPos.value);
+    if (isNaN(s) || isNaN(e) || s < 1 || e < s || e > deck.length) return blockAnalysisOutput.textContent = "Invalid range.";
+    const block = deck.slice(s-1, e);
+    let next;
+    const typ = blockShuffleType.value;
+    if (typ === 'out') next = perfectOutFaro(deck);
+    else if (typ === 'in') next = perfectInFaro(deck);
+    else {
+      const t = parseInt(topPacketSizeInput.value) || Math.floor(deck.length/2);
+      next = imperfectWeave(deck, t, true);
+    }
+    if (!next) return blockAnalysisOutput.textContent = "Shuffle failed.";
+    const poss = block.map(c => next.indexOf(c) + 1).filter(p=>p>0).sort((a,b)=>a-b);
+    const minp = poss[0], maxp = poss[poss.length-1];
+    const span = maxp - minp + 1;
+    const cont = span === block.length;
+    const drift = ((poss.reduce((a,b)=>a+b,0)/block.length) - ((s+e)/2)).toFixed(1);
+    blockAnalysisOutput.textContent = 
+      `Block ${s}–${e} (${block.length} cards):\n` +
+      `Cards: ${block.join(', ')}\n\n` +
+      `After 1 ${typ.toUpperCase()}:\nPositions: ${poss.join(', ')}\n` +
+      `Range: ${minp}–${maxp}  Contiguous: ${cont ? 'YES' : 'NO'}\n` +
+      `Avg drift: ${drift > 0 ? '+' : ''}${drift}`;
+    logHistoryEntry(`Block analysis ${s}-${e} (${typ})`);
+  }
+
+  function solveReturnToPosition() {
+    const deck = parseDeck(true); if (!deck) return rtpOutput.textContent = "No deck.";
+    const card = (rtpCard.value || '').trim().toUpperCase();
+    if (!card || !deck.includes(card)) return rtpOutput.textContent = "Card not found.";
+    const tgt = parseInt(rtpTarget.value);
+    if (isNaN(tgt) || tgt < 1 || tgt > deck.length) return rtpOutput.textContent = "Invalid target.";
+    const maxs = parseInt(rtpMaxSteps.value) || 26;
+    let outS = -1, inS = -1;
+    let cur = deck.slice();
+    for (let i = 1; i <= maxs; i++) {
+      cur = perfectOutFaro(cur);
+      if (cur && cur.indexOf(card) + 1 === tgt) { outS = i; break; }
+    }
+    cur = deck.slice();
+    for (let i = 1; i <= maxs; i++) {
+      cur = perfectInFaro(cur);
+      if (cur && cur.indexOf(card) + 1 === tgt) { inS = i; break; }
+    }
+    rtpOutput.textContent = 
+      `Card ${card} at ${deck.indexOf(card)+1}.\nTarget: ${tgt}\n\n` +
+      (outS > 0 ? `OUT-faro: ${outS} step${outS>1?'s':''}\n` : `No OUT path ≤${maxs}\n`) +
+      (inS > 0 ? `IN-faro: ${inS} step${inS>1?'s':''}` : `No IN path ≤${maxs}`);
+    logHistoryEntry(`RTP solve: ${card} → ${tgt}`);
+  }
+
+  function showPositionOrbits() {
+    const deck = parseDeck(true);
+    if (!deck || deck.length % 2) return orbitsOutput.textContent = "Even deck required.";
+    const n = deck.length;
+    const seen = new Set();
+    const groups = [];
+    for (let i = 0; i < n; i++) {
+      if (seen.has(i)) continue;
+      let pos = i, cycle = [];
+      do {
+        seen.add(pos);
+        cycle.push(pos + 1);
+        pos = (2 * pos) % (n + 1);
+        if (pos >= n) pos -= n;
+      } while (!seen.has(pos));
+      if (cycle.length > 1) groups.push({len: cycle.length, pos: cycle.sort((a,b)=>a-b)});
+    }
+    groups.sort((a,b)=>b.len - a.len);
+    let txt = "Out-Faro orbit sizes (approximate):\n\n";
+    groups.forEach(g => txt += `Length ${g.len}: ${g.pos.join(', ')}\n`);
+    orbitsOutput.textContent = txt || "No multi-card cycles found.";
+    logHistoryEntry("Viewed cycle orbits");
+  }
+
+  function generateHeatmap() {
+    const deck = parseDeck(true);
+    if (!deck || deck.length % 2) return heatmapContainer.innerHTML = "<p>Even deck required.</p>";
+    const n = deck.length;
+    const returns = new Array(n).fill(0);
+    let cur = deck.slice();
+    const orig = deck.slice();
+    let steps = 0;
+    do {
+      cur = perfectOutFaro(cur);
+      steps++;
+      if (!cur || steps > 104) break;
+      for (let i = 0; i < n; i++) {
+        if (cur[i] === orig[i] && returns[i] === 0) returns[i] = steps;
+      }
+    } while (!arraysEqual(cur, orig) && steps < 104);
+    let html = '<table class="heatmap-table"><tr><th>Pos</th><th>Cycle</th></tr>';
+    returns.forEach((cyc, i) => {
+      let cls = cyc <= 4 ? 'fast' : cyc <= 12 ? 'medium' : 'slow';
+      html += `<tr><td>${i+1}</td><td class="${cls}">${cyc || '>'+steps}</td></tr>`;
+    });
+    html += '</table>';
+    heatmapContainer.innerHTML = html;
+    logHistoryEntry("Out-faro cycle heatmap generated");
+  }
+
+  function analyzeSensitivity() {
+    const deck = parseDeck(true); if (!deck) return sensOutput.textContent = "No deck.";
+    const card = (sensCard.value || '').trim().toUpperCase();
+    if (!card || !deck.includes(card)) return sensOutput.textContent = "Card not in deck.";
+    const base = parseInt(sensBaseTop.value);
+    if (isNaN(base) || base < 1 || base >= deck.length) return sensOutput.textContent = "Invalid base top size.";
+    let txt = `Sensitivity for ${card} around top-split ${base}:\n\n`;
+    for (let d = -1; d <= 1; d++) {
+      const t = base + d;
+      if (t < 1 || t >= deck.length) continue;
+      const after = imperfectWeave(deck, t, true);
+      if (!after) continue;
+      const np = after.indexOf(card) + 1;
+      txt += `Split ${t}/${deck.length-t}: new pos ${np}\n`;
+    }
+    sensOutput.textContent = txt || "No valid splits.";
+    logHistoryEntry(`Sensitivity analysis for ${card}`);
+  }
+
+  // ── Event Listeners ─────────────────────────────────────────────────────────
+
+  resetNewDeckBtn.addEventListener('click', function () {
+    const deck = buildNewDeckOrder();
+    undoStack = []; redoStack = [];
+    updateDisplay(deck);
+    logHistoryEntry('Reset to new deck order');
+  });
+
+  undoBtn.addEventListener('click', function () {
+    if (!undoStack.length) return alert('No previous shuffle to undo.');
+    const current = parseDeck(true);
+    if (current) redoStack.push(current.slice());
+    updateDisplay(undoStack.pop());
+    logHistoryEntry('Undo last shuffle');
+  });
+
+  redoBtn.addEventListener('click', function () {
+    if (!redoStack.length) return alert('No shuffle to redo.');
+    const current = parseDeck(true);
+    if (current) undoStack.push(current.slice());
+    updateDisplay(redoStack.pop());
+    logHistoryEntry('Redo last shuffle');
+  });
+
+  copyOutputBtn.addEventListener('click', function () {
+    const text = resultsBox.textContent || '';
+    if (!text.trim()) return alert('No output to copy.');
+    navigator.clipboard.writeText(text).then(() => alert('Output copied!'));
+  });
+
+  outFaroBtn.addEventListener('click', () => applyShuffle(perfectOutFaro, 'Perfect out-faro'));
+  inFaroBtn.addEventListener('click', () => applyShuffle(perfectInFaro, 'Perfect in-faro'));
+  reverseOutFaroBtn.addEventListener('click', () => applyShuffle(reverseOutFaro, 'Reverse out-faro'));
+  reverseInFaroBtn.addEventListener('click', () => applyShuffle(reverseInFaro, 'Reverse in-faro'));
+  mongePerfectBtn.addEventListener('click', () => applyShuffle(mongePerfect, 'Monge-perfect variant'));
+  leftStraddleBtn.addEventListener('click', () => applyShuffle(leftStraddleFaro, 'Left-straddle faro'));
+  rightStraddleBtn.addEventListener('click', () => applyShuffle(rightStraddleFaro, 'Right-straddle faro'));
+  classicMongeBtn.addEventListener('click', () => applyShuffle(classicMonge, 'Classic Monge shuffle'));
+  reverseMongeBtn.addEventListener('click', () => applyShuffle(reverseMonge, 'Reverse Monge shuffle'));
+  horseshoeBtn.addEventListener('click', () => applyShuffle(horseshoeShuffle, 'Horseshoe shuffle'));
+  milkShuffleBtn.addEventListener('click', () => applyShuffle(milkShuffle, 'Milk shuffle'));
+  zarrowBtn.addEventListener('click', () => applyShuffle(zarrowShuffle, 'Zarrow logic shuffle'));
+
+  imperfectOutBtn.addEventListener('click', () => {
+    const deck = parseDeck(); if (!deck) return;
+    const t = parseInt(topPacketSizeInput.value), b = parseInt(bottomPacketSizeInput.value);
+    if (!validateImperfectSplit(deck.length, t, b)) return;
+    const next = imperfectWeave(deck, t, true);
+    if (!next) return;
+    pushUndoState(deck);
+    updateDisplay(next);
+    logHistoryEntry(`Imperfect out-faro (${t}/${b})`);
+  });
+
+  imperfectInBtn.addEventListener('click', () => {
+    const deck = parseDeck(); if (!deck) return;
+    const t = parseInt(topPacketSizeInput.value), b = parseInt(bottomPacketSizeInput.value);
+    if (!validateImperfectSplit(deck.length, t, b)) return;
+    const next = imperfectWeave(deck, t, false);
+    if (!next) return;
+    pushUndoState(deck);
+    updateDisplay(next);
+    logHistoryEntry(`Imperfect in-faro (${t}/${b})`);
+  });
+
+  outCycleBtn.addEventListener('click', () => {
+    const deck = parseDeck(); if (!deck) return;
+    if (!requireEvenDeck(deck, 'Out-faro cycle')) return;
+    computeFaroCycle(deck, perfectOutFaro, 'Out-faro cycle');
+  });
+
+  inCycleBtn.addEventListener('click', () => {
+    const deck = parseDeck(); if (!deck) return;
+    if (!requireEvenDeck(deck, 'In-faro cycle')) return;
+    computeFaroCycle(deck, perfectInFaro, 'In-faro cycle');
+  });
+
+  // New feature listeners
+  analyzeBlockBtn.addEventListener('click', analyzeSelectedBlock);
+  solveRtpBtn.addEventListener('click', solveReturnToPosition);
+  showOrbitsBtn.addEventListener('click', showPositionOrbits);
+  showHeatmapBtn.addEventListener('click', generateHeatmap);
+  analyzeSensBtn.addEventListener('click', analyzeSensitivity);
+
+  deckInput.addEventListener('input', () => {
+    const deck = parseDeck(true);
+    if (!deck) {
+      cardCountLabel.textContent = 'Cards: 0';
+      resultsBox.textContent = '';
+      trackCardResult.textContent = 'Position: —';
+      visualDeckGrid.innerHTML = '';
+      integritySummary.textContent = 'No analysis yet.';
+      return;
+    }
+    updateDisplay(deck);
+  });
+
+  trackCardInput.addEventListener('input', () => {
+    const deck = parseDeck(true);
+    if (deck) updateTrackedPosition(deck);
+  });
+
+  toggleDarkModeBtn.addEventListener('click', () => document.body.classList.toggle('dark'));
+
+  groupRows.forEach(row => {
+    const header = row.querySelector('.group-header');
+    header.addEventListener('click', () => {
+      row.classList.toggle('collapsed');
+      const icon = row.querySelector('.group-toggle-icon');
+      icon.textContent = row.classList.contains('collapsed') ? '▸' : '▾';
+    });
+  });
+
+  importFileInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      deckInput.value = e.target.result;
+      const deck = parseDeck(true);
+      if (deck) {
+        undoStack = []; redoStack = [];
+        updateDisplay(deck);
+        logHistoryEntry('Imported deck from file');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  exportDeckBtn.addEventListener('click', () => {
+    const deck = parseDeck(true);
+    if (!deck) return alert('No valid deck to export.');
+    const blob = new Blob([formatDeck(deck)], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'deck.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    logHistoryEntry('Exported deck to file');
+  });
+
+  // Initial deck
+  const initialDeck = buildNewDeckOrder();
+  updateDisplay(initialDeck);
+  logHistoryEntry('Initial new deck order loaded');
+})();
+</script>
+
+</body>
+</html>
